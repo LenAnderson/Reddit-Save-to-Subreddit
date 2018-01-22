@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.0
+// @version      1.1
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -75,9 +75,15 @@
                                 break;
                             case 'comment':
                                 let opThing = document.querySelector('#siteTable > .thing');
-                                vars.kind = 'self';
-                                vars.text = thing.querySelector('.usertext-body').textContent;
-                                vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment] ' + opThing.querySelector('.entry a.title').textContent.trim();
+                                if (thing.querySelector('.usertext-body a')) {
+                                    vars.kind = 'link';
+                                    vars.url = thing.querySelector('.usertext-body a').href;
+                                    vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment-link]' + opThing.querySelector('.entry a.title').textContent.trim();
+                                } else {
+                                    vars.kind = 'self';
+                                    vars.text = thing.querySelector('.usertext-body').textContent;
+                                    vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment] ' + opThing.querySelector('.entry a.title').textContent.trim();
+                                }
                                 break;
                             default:
                                 alert('kind "' + thing.getAttribute('data-type') + '" not supported');
