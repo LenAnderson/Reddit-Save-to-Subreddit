@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.1
+// @version      1.2
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -20,8 +20,11 @@
         return new Promise(function(resolve, reject) {
             let xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
-            xhr.addEventListener('load', function() {
+            xhr.addEventListener('load', () => {
                 resolve(xhr.responseText);
+            });
+            xhr.addEventListener('error', () => {
+                reject(xhr);
             });
             xhr.send();
         });
@@ -36,8 +39,11 @@
                     xhr.setRequestHeader(key, headers[key]);
                 });
             }
-            xhr.addEventListener('load', function() {
+            xhr.addEventListener('load', () => {
                 resolve(xhr.responseText);
+            });
+            xhr.addEventListener('error', () => {
+                reject(xhr);
             });
             xhr.send(data);
         });
@@ -88,12 +94,18 @@
                             default:
                                 alert('kind "' + thing.getAttribute('data-type') + '" not supported');
                         }
-                        post('https://www.reddit.com/api/submit',
-                             Object.keys(vars).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(vars[key])).join('&'),
-                             {'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest'}
-                            ).then(resp => {
-                            li.textContent = 'saved in /r/' + sr;
-                        });
+                        return post('https://www.reddit.com/api/submit',
+                                    Object.keys(vars).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(vars[key])).join('&'),
+                                    {'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest'}
+                                   );
+                    }).then(resp => {
+                        li.textContent = 'saved in /r/' + sr;
+                        thing.style.backgroundColor = '';
+                    }).catch(xhr => {
+                        li.textContent = '';
+                        li.appendChild(a);
+                        thing.style.backgroundColor = 'rgba(255,0,0,0.125)';
+                        alert('Save to Subreddit failed!');
                     });
                 });
             } else {
@@ -105,21 +117,21 @@
         });
     };
 
-    let showPrefs = () => {
-        let addPrefsLink = (title, href, selected) => {
-            let ul = document.querySelector('.tabmenu');
-            let li = document.createElement('li');
-            if (selected) {
-                li.classList.add('selected');
-            }
-            let a = document.createElement('a');
-            a.classList.add('choice');
-            a.href = href;
-            a.textContent = title;
-            li.appendChild(a);
-            ul.appendChild(li);
-        };
+    let addPrefsLink = (title, href, selected) => {
+        let ul = document.querySelector('.tabmenu');
+        let li = document.createElement('li');
+        if (selected) {
+            li.classList.add('selected');
+        }
+        let a = document.createElement('a');
+        a.classList.add('choice');
+        a.href = href;
+        a.textContent = title;
+        li.appendChild(a);
+        ul.appendChild(li);
+    };
 
+    let showPrefs = () => {
         let pagename = document.querySelector('.pagename.selected');
         pagename.textContent = 'preferences';
         let tabmenu = document.createElement('ul');
@@ -132,7 +144,7 @@
         addPrefsLink('blocked', '/prefs/blocked/');
         addPrefsLink('password/email', '/prefs/update/');
         addPrefsLink('deactivate', '/prefs/deactivate/');
-        addPrefsLink('save in gist', '/prefs/save-to-subreddit/', true);
+        addPrefsLink('save to subreddit', '/prefs/save-to-subreddit/', true);
 
         document.querySelector('#classy-error').remove();
         let content = document.querySelector('.content[role="main"]'); {
@@ -187,6 +199,8 @@
 
     if (location.href == 'https://www.reddit.com/prefs/save-to-subreddit/') {
         showPrefs();
+    } else if (location.href.search('/prefs/') > -1) {
+        addPrefsLink('save to subreddit', '/prefs/save-to-subreddit/');
     } else {
         addSaveButtons();
         var mo = new MutationObserver(function(muts) {
