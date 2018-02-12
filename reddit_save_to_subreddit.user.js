@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.2
+// @version      1.3
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -49,6 +49,27 @@
         });
     };
 
+    let redditSubmit = (varsl) => {
+        let vars = varsl.shift();
+        return get('https://www.reddit.com/r/' + vars.sr + '/submit').then(uhSrc => {
+            let uh = document.createElement('div');
+            uh.innerHTML = uhSrc;
+            return uh.querySelector('[name="uh"]').value;
+        }).then(uh => {
+            vars.uh = uh;
+            return post('https://www.reddit.com/api/submit',
+                        Object.keys(vars).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(vars[key])).join('&'),
+                        {'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest'}
+                       );
+        }).then(resp => {
+            if (varsl.length > 0) {
+                return redditSubmit(varsl);
+            } else {
+                return;
+            }
+        });
+    };
+
     let addSaveButtons = () => {
         [].forEach.call(document.querySelectorAll('.thing:not([data-type="morechildren"]) > .entry .flat-list.buttons'), buttons => {
             if (buttons.hasAttribute('data-stsr'))
@@ -62,43 +83,43 @@
                 a.addEventListener('click', () => {
                     li.textContent = 'saving in /r/' + sr + ' ...';
                     let thing = buttons.closest('.thing');
-                    get('https://www.reddit.com/r/' + sr + '/submit').then(uhSrc => {
-                        let uh = document.createElement('div');
-                        uh.innerHTML = uhSrc;
-                        let vars = {
-                            sr: sr,
-                            sendreplies: true,
-                            id: '#newlink',
-                            r: sr,
-                            renderstyle: 'html',
-                            uh: uh.querySelector('[name="uh"]').value
-                        };
-                        switch (thing.getAttribute('data-type')) {
-                            case 'link':
+                    let varsl = [];
+                    let vars = {
+                        sr: sr,
+                        sendreplies: true,
+                        id: '#newlink',
+                        r: sr,
+                        renderstyle: 'html'
+                    };
+                    switch (thing.getAttribute('data-type')) {
+                        case 'link':
+                            vars.kind = 'link';
+                            vars.url = thing.getAttribute('data-url').replace(/^\//, 'https://www.redit.com/');
+                            vars.title = '[' + thing.getAttribute('data-subreddit') + '] ' + thing.querySelector('.entry a.title').textContent.trim();
+                            varsl.push(vars);
+                            break;
+                        case 'comment':
+                            let opThing = document.querySelector('#siteTable > .thing');
+                            let links = thing.querySelector('.usertext-body').querySelectorAll('a');
+                            if (links.length > 0) {
                                 vars.kind = 'link';
-                                vars.url = thing.getAttribute('data-url').replace(/^\//, 'https://www.redit.com/');
-                                vars.title = '[' + thing.getAttribute('data-subreddit') + '] ' + thing.querySelector('.entry a.title').textContent.trim();
-                                break;
-                            case 'comment':
-                                let opThing = document.querySelector('#siteTable > .thing');
-                                if (thing.querySelector('.usertext-body a')) {
-                                    vars.kind = 'link';
-                                    vars.url = thing.querySelector('.usertext-body a').href;
-                                    vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment-link]' + opThing.querySelector('.entry a.title').textContent.trim();
-                                } else {
-                                    vars.kind = 'self';
-                                    vars.text = thing.querySelector('.usertext-body').textContent;
-                                    vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment] ' + opThing.querySelector('.entry a.title').textContent.trim();
-                                }
-                                break;
-                            default:
-                                alert('kind "' + thing.getAttribute('data-type') + '" not supported');
-                        }
-                        return post('https://www.reddit.com/api/submit',
-                                    Object.keys(vars).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(vars[key])).join('&'),
-                                    {'Content-Type':'application/x-www-form-urlencoded', 'X-Requested-With':'XMLHttpRequest'}
-                                   );
-                    }).then(resp => {
+                                vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment-link]' + opThing.querySelector('.entry a.title').textContent.trim();
+                                [].forEach.call(links, link => {
+                                    vars = Object.assign({}, vars);
+                                    vars.url = link.href;
+                                    varsl.push(vars);
+                                });
+                            } else {
+                                vars.kind = 'self';
+                                vars.text = thing.querySelector('.usertext-body').textContent;
+                                vars.title = '[' + opThing.getAttribute('data-subreddit') + '][comment] ' + opThing.querySelector('.entry a.title').textContent.trim();
+                                varsl.push(vars);
+                            }
+                            break;
+                        default:
+                            alert('kind "' + thing.getAttribute('data-type') + '" not supported');
+                    }
+                    return redditSubmit(varsl).then(resp => {
                         li.textContent = 'saved in /r/' + sr;
                         thing.style.backgroundColor = '';
                     }).catch(xhr => {
