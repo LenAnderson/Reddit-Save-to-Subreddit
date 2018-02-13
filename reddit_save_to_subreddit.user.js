@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.3
+// @version      1.4
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -49,8 +49,11 @@
         });
     };
 
-    let redditSubmit = (varsl) => {
+    let redditSubmit = (varsl, li, total) => {
         let vars = varsl.shift();
+        if (total > 1) {
+            li.textContent = 'saving in /r/' + vars.sr + ' ... (' + (total-varsl.length) + '/' + total + ')';
+        }
         return get('https://www.reddit.com/r/' + vars.sr + '/submit').then(uhSrc => {
             let uh = document.createElement('div');
             uh.innerHTML = uhSrc;
@@ -63,7 +66,7 @@
                        );
         }).then(resp => {
             if (varsl.length > 0) {
-                return redditSubmit(varsl);
+                return redditSubmit(varsl, li, total);
             } else {
                 return;
             }
@@ -119,7 +122,7 @@
                         default:
                             alert('kind "' + thing.getAttribute('data-type') + '" not supported');
                     }
-                    return redditSubmit(varsl).then(resp => {
+                    return redditSubmit(varsl, li, varsl.length).then(resp => {
                         li.textContent = 'saved in /r/' + sr;
                         thing.style.backgroundColor = '';
                     }).catch(xhr => {
