@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.4
+// @version      1.5
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -14,7 +14,7 @@
 
     let sr = localStorage.getItem('reddit-save-to-subreddit');
 
-    if (sr && location.href.search(new RegExp('^https:\/\/www\.reddit\.com\/r\/' + sr, 'i')) == 0) return;
+    if (sr && location.href.search(new RegExp('^https:\/\/www\.reddit\.com\/r\/' + sr, 'i')) == 0 && location.href.search(new RegExp('^https:\/\/www\.reddit\.com\/r\/' + sr + '\/comments', 'i')) == -1) return;
 
     let get = (url) => {
         return new Promise(function(resolve, reject) {
