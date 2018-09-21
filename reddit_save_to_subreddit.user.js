@@ -2,7 +2,7 @@
 // @name         Reddit - Save to Subreddit
 // @namespace    https://github.com/LenAnderson/
 // @downloadURL  https://github.com/LenAnderson/Reddit-Save-to-Subreddit/raw/master/reddit_save_to_subreddit.user.js
-// @version      1.5
+// @version      1.6
 // @author       LenAnderson
 // @match        https://www.reddit.com/*
 // @match        https://www.reddit.com
@@ -68,7 +68,7 @@
             if (varsl.length > 0) {
                 return redditSubmit(varsl, li, total);
             } else {
-                return;
+                return resp;
             }
         });
     };
@@ -80,6 +80,7 @@
             buttons.setAttribute('data-stsr', '1');
             let li = document.createElement('li');
             let a = document.createElement('a');
+            a.classList.add('save-to-subreddit');
             if (sr) {
                 a.href = 'javascript:;';
                 a.textContent = 'save to /r/' + sr;
@@ -123,13 +124,21 @@
                             alert('kind "' + thing.getAttribute('data-type') + '" not supported');
                     }
                     return redditSubmit(varsl, li, varsl.length).then(resp => {
-                        li.textContent = 'saved in /r/' + sr;
-                        thing.style.backgroundColor = '';
+                        if (JSON.parse(resp).success || resp.search('that link has already been submitted') > -1) {
+                            li.textContent = 'saved in /r/' + sr;
+                            li.classList.add('save-to-subreddit--saved');
+                            thing.style.backgroundColor = '';
+                        } else {
+                            li.textContent = '';
+                            li.appendChild(a);
+                            li.classList.add('save-to-subreddit--failed');
+                            thing.style.backgroundColor = 'rgba(255,0,0,0.125)';
+                        }
                     }).catch(xhr => {
                         li.textContent = '';
                         li.appendChild(a);
+                        li.classList.add('save-to-subreddit--failed');
                         thing.style.backgroundColor = 'rgba(255,0,0,0.125)';
-                        alert('Save to Subreddit failed!');
                     });
                 });
             } else {
